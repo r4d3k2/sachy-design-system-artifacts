@@ -10,9 +10,9 @@ Specifikace pro tvorbu interaktivních šachových artefaktů (simulace partií,
 
 **Changelog v2:** oprava otáčení souřadnic (§4), podpora rošády v datovém modelu (§6), pravidla pro přepínač variant (§10), export FEN a PGN jako dvě tlačítka na konci (§11), vynucená textová podoba figur proti emoji renderingu (§4).
 
-\---
+---
 
-## 1\. Technologie
+## 1. Technologie
 
 * **React, jeden soubor `.jsx`**, default export `App` bez povinných props
 * Pouze `useState`, `useMemo` a `useRef` (na časovače tlačítek „Zkopírováno"), žádné externí knihovny
@@ -20,12 +20,12 @@ Specifikace pro tvorbu interaktivních šachových artefaktů (simulace partií,
 * Šachovnice jako **SVG** generované v JS (žádné obrázky)
 * **Animace přes CSS `transition`** na `transform` a `opacity` — žádné animační knihovny, žádné `requestAnimationFrame`
 * Fonty přes Google Fonts import v `<style>` bloku
-* Artefakt vždy vytvořit jako **skutečný soubor** (create\_file + present\_files), nikdy jako markdown blok
+* Artefakt vždy vytvořit jako **skutečný soubor** (create_file + present_files), nikdy jako markdown blok
 * Název souboru: česky, kebab-case, bez diakritiky (např. `past-v-italske-partii.jsx`)
 
-## 2\. Barevné režimy (čtyři + přepínač)
+## 2. Barevné režimy (čtyři + přepínač)
 
-Vše čerpá z objektu `THEMES = { dark, light, blue, blueLight }`; komponenta drží `mode` ve stavu a `const T = THEMES\[mode]`. **Žádná barva se nezapisuje natvrdo mimo tento objekt** — jinak nový režim nikdy nebude vypadat dobře.
+Vše čerpá z objektu `THEMES = { dark, light, blue, blueLight }`; komponenta drží `mode` ve stavu a `const T = THEMES[mode]`. **Žádná barva se nezapisuje natvrdo mimo tento objekt** — jinak nový režim nikdy nebude vypadat dobře.
 
 Každý režim má **stejnou sadu 22 tokenů** (včetně `switchIcon` — barvy symbolu přepínače). Přidání režimu = přidání jednoho klíče do `THEMES`, nic víc.
 
@@ -137,13 +137,13 @@ Světlá polovina modré rodiny: skoro bílé pozadí, tmavě modrý inkoust, de
 **Jedno kulaté tlačítko 34 px vpravo nahoře v hlavičce se symboly ☀ / ☾**, které cykluje čtyřmi režimy a mění barvu symbolu podle tokenu `switchIcon`.
 
 ```jsx
-const MODES = \[
+const MODES = [
   { key: 'dark',  label: 'Tmavý luxus',     icon: '☀' },
   { key: 'light', label: 'Světlý',          icon: '☾' },
   { key: 'blue',  label: 'Modrá břidlice',  icon: '☀' },
   { key: 'blueLight', label: 'Modrý papír', icon: '☾' },
 ];
-const next = () => MODES\[(MODES.findIndex(m => m.key === mode) + 1) % MODES.length];
+const next = () => MODES[(MODES.findIndex(m => m.key === mode) + 1) % MODES.length];
 ```
 
 **Pravidla:**
@@ -156,35 +156,35 @@ const next = () => MODES\[(MODES.findIndex(m => m.key === mode) + 1) % MODES.len
 * výchozí `useState('dark')`
 * přepnutí režimu **nesmí** resetovat `step`, `vIdx`, `flipped` ani stav režimu úlohy (§17)
 
-## 3\. Typografie
+## 3. Typografie
 
 * **Nadpisy, názvy tahů, záložky:** `'Playfair Display', Georgia, serif` (400/700)
 * **Text komentářů:** `'Crimson Text', Georgia, serif`, 15 px, line-height 1.68
 * **Notace, souřadnice, žetony tahů:** `monospace`, 11 px
 * **Eyebrow / štítky sekcí:** 11–12 px, `letterSpacing: 3–5`, KAPITÁLKY, barva goldDim
-* Import: `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700\&family=Crimson+Text:ital@0;1\&display=swap');`
+* Import: `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Crimson+Text:ital@0;1&display=swap');`
 
-## 4\. Šachovnice (SVG)
+## 4. Šachovnice (SVG)
 
-* Konstanty: `SQ = 46` (pole), `P = 26` (okraj pro souřadnice), šířka `P\*2 + 8\*SQ`
+* Konstanty: `SQ = 46` (pole), `P = 26` (okraj pro souřadnice), šířka `P*2 + 8*SQ`
 * Řádek 0 = 8. řada (černý nahoře), sloupec 0 = sloupec a; pomocníci `px(c)`, `py(r)` vracejí **levý horní roh pole** a počítají s otočením (`flipped`)
 * **Pořadí vrstev v SVG (aktualizováno ve v5):**
 `rám → pole → zvýraznění posledního tahu → zone → keys → souřadnice → skupina figur → kroužky marks → arrows`
 Figury musí být NAD plošným zvýrazněním a POD kroužky hrozeb; šipky jsou úplně nahoře. Význam vrstev viz §15.
-* Figury: **Unicode plné glyfy** `♚♛♜♝♞♟` pro obě strany, **každý s příponou `\\uFE0E`** (VARIATION SELECTOR-15 — vynucená textová podoba; bez ní může iOS/WebKit vykreslit figury jako barevné emoji a barvení fill/stroke přestane fungovat), 34 px, explicitní `fontFamily="serif"`, barva přes `fill` + `stroke` s `paintOrder="stroke"`, `userSelect: 'none'`
+* Figury: **Unicode plné glyfy** `♚♛♜♝♞♟` pro obě strany, **každý s příponou `\uFE0E`** (VARIATION SELECTOR-15 — vynucená textová podoba; bez ní může iOS/WebKit vykreslit figury jako barevné emoji a barvení fill/stroke přestane fungovat), 34 px, explicitní `fontFamily="serif"`, barva přes `fill` + `stroke` s `paintOrder="stroke"`, `userSelect: 'none'`
 * **Figury se nekreslí po polích, ale jako samostatné pohyblivé skupiny `<g>`** — viz §12. Glyf uvnitř skupiny sedí na souřadnicích 0,0 (`textAnchor="middle"`, `dominantBaseline="central"`, `y={1}` jako optická korekce) a o polohu se stará `transform` na skupině.
 * **Souřadnice a otočení desky:** popisek sloupce `c` se kreslí na `x = px(c) + SQ/2` s textem `fileL(c)`; popisek řady `r` na `y = py(r) + SQ/2` s textem `rankL(r)`. Funkce `px()`/`py()` už otočení řeší — text se NESMÍ indexovat podruhé přes `flipped ? 7-c : c` (dvojitá inverze = popisky se při otočení nezmění, což je chyba). Správné chování: neotočeno a–h zleva a 1 dole; otočeno h–a zleva a 8 dole. **Test před odevzdáním: otoč desku a zkontroluj, že pole a1 má u sebe popisky „a" a „1" v obou orientacích.**
 * Zvýraznění posledního tahu: poloprůhledný obdélník na výchozím (slabší) a cílovém (silnější) poli; **u rošády se zvýrazňují všechna čtyři pole** (král i věž)
 * Hrozby/cíle: **přerušovaný kroužek v barvě `mark`** (`strokeDasharray="5 4"`, strokeWidth 2.5) na polích z `marks`
 * Rám desky: obdélník boardFrame s `rx=4`, obal boardWrap s paddingem 6 a `borderRadius: 8`, `overflowX: auto` (iPhone!)
 
-## 5\. Rozvržení stránky (shora dolů)
+## 5. Rozvržení stránky (shora dolů)
 
 1. **Hlavička** — na střed: eyebrow (téma), volitelný **odznak série** (§18), hlavní titul (24 px, bold, letterSpacing 2), podtitul s notací linie, volitelný **odznak hodnocení** `+−` / `−+` / `=` (§13.6); vpravo nahoře **kulaté tlačítko ☀/☾** cyklující čtyřmi režimy (§2)
 2. **Přepínač variant** (jen pokud je variant více, viz §10)
 3. **Šachovnice**
 4. **Počítadlo závodu** (volitelné, jen u tempově kritických pozic — §16)
-5. **Navigace** — kulatá tlačítka 38 px: `⏮ ◀ \[stav] ▶ ⏭ ↕` (↕ = otočit desku); pilulka stavu ukazuje „Začátek" / „Půltah X / Y" / „Konec"
+5. **Navigace** — kulatá tlačítka 38 px: `⏮ ◀ [stav] ▶ ⏭ ↕` (↕ = otočit desku); pilulka stavu ukazuje „Začátek" / „Půltah X / Y" / „Konec"
 6. **Záložky** — `Strategie | Tah | Historie | Koncepty` (flex, aktivní má podtržení 2 px v barvě gold)
 7. **Panel obsahu záložky** — panel s rámečkem, `borderRadius: '0 0 8px 8px'`, minHeight 120
 8. **Žetony tahů** — flex-wrap řada tlačítek `⊙` (start) + `1.d4`, `1...d5`, … (monospace, pilulky 12 px radius); tahy po bodu rozvětvení mají zvýrazněnou barvu (goldDim rámeček, textBody písmo); v režimu úlohy jsou maskované (§17)
@@ -194,38 +194,38 @@ Figury musí být NAD plošným zvýrazněním a POD kroužky hrozeb; šipky jso
 
 Obal obsahu: `maxWidth: 480, margin: '0 auto', padding: '0 12px'` — optimalizováno pro iPhone. Tlačítko přepínače má `position: absolute` (top 14, right 14), hlavička `position: relative` a titulek dostatečný postranní padding, aby se na úzkém displeji nepřekrývaly.
 
-## 6\. Datový model
+## 6. Datový model
 
 ```js
-const MOVES = \[
-  { m: \[zŘádek, zSloupec, naŘádek, naSloupec],  // řádek 0 = 8. řada
+const MOVES = [
+  { m: [zŘádek, zSloupec, naŘádek, naSloupec],  // řádek 0 = 8. řada
     san: 'Db6!',          // česká notace (viz §8)
     title: 'Výjimka z pravidla o dámě',   // krátký pedagogický titulek
     comment: '…',         // 3–6 vět, viz §7
-    marks: \[\[6,1]],       // volitelně: pole hrozeb/cílů
-    m2: \[0,7,0,5],        // volitelně: druhý přesun v témže tahu — POUZE pro rošádu (věž)
+    marks: [[6,1]],       // volitelně: pole hrozeb/cílů
+    m2: [0,7,0,5],        // volitelně: druhý přesun v témže tahu — POUZE pro rošádu (věž)
     promote: 'Q',         // volitelně: proměna pěšce (§13.2)
     zone: { r0,c0,r1,c1 },// volitelně: obdélník polí (§15)
-    keys: \[\[4,3],\[4,5]],  // volitelně: klíčová pole (§15)
-    arrows: \[{ from:\[6,4], to:\[4,4], kind:'plan' }], // volitelně (§15)
+    keys: [[4,3],[4,5]],  // volitelně: klíčová pole (§15)
+    arrows: [{ from:[6,4], to:[4,4], kind:'plan' }], // volitelně (§15)
     race: { w: 4, b: 5, note: '…' },   // volitelně (§16)
-    side: \[ … ],          // volitelně: vedlejší varianta (§14)
+    side: [ … ],          // volitelně: vedlejší varianta (§14)
     hidden: true },       // volitelně: tah se maskuje v režimu úlohy (§17)
 ];
 ```
 
-* **Rošáda:** zapisuje se jako tah krále v `m` + tah věže v `m2`; `san: 'O-O'` / `'O-O-O'`. Malá rošáda bílého: `m:\[7,4,7,6], m2:\[7,7,7,5]`; černého: `m:\[0,4,0,6], m2:\[0,7,0,5]`. Velká rošáda bílého: `m:\[7,4,7,2], m2:\[7,0,7,3]`; černého: `m:\[0,4,0,2], m2:\[0,0,0,3]`.
+* **Rošáda:** zapisuje se jako tah krále v `m` + tah věže v `m2`; `san: 'O-O'` / `'O-O-O'`. Malá rošáda bílého: `m:[7,4,7,6], m2:[7,7,7,5]`; černého: `m:[0,4,0,6], m2:[0,7,0,5]`. Velká rošáda bílého: `m:[7,4,7,2], m2:[7,0,7,3]`; černého: `m:[0,4,0,2], m2:[0,0,0,3]`.
 * **Pozice se počítá jako seznam figur s identitou:** `positionAt(moves, upTo)` vrací pole objektů `{ id, side, t, r, c, alive }` — viz §12. Matice 8×8 zůstává jen jako interní pomocník `boardAt()` pro generování FEN.
-* **Výchozí pozice:** základní postavení přes `initPieces()`, libovolná pozice přes `piecesFromFEN(START\_FEN)` — viz §13.1
+* **Výchozí pozice:** základní postavení přes `initPieces()`, libovolná pozice přes `piecesFromFEN(START_FEN)` — viz §13.1
 * **Proměna pěšce:** klíč `promote` (§13.2) — od v5 součást standardu
-* Braní mimochodem (en passant) tento model neumí — linii s en passant buď nevybírat, nebo model rozšířit o `clear: \[r,c]` (a v `positionAt` figuru na tom poli označit `alive: false`)
-* `STRATEGY` / `variant.strategy` — 2–4 odstavce úvodní strategie (záložka Strategie); víceodstavcový text psát s `\\n\\n` a renderovat přes `split('\\n\\n')`
+* Braní mimochodem (en passant) tento model neumí — linii s en passant buď nevybírat, nebo model rozšířit o `clear: [r,c]` (a v `positionAt` figuru na tom poli označit `alive: false`)
+* `STRATEGY` / `variant.strategy` — 2–4 odstavce úvodní strategie (záložka Strategie); víceodstavcový text psát s `\n\n` a renderovat přes `split('\n\n')`
 * `CONCEPTS` — pole `{ name, text, diagram? }` s vysvětlením klíčových pojmů (sdílené všemi variantami; mini-diagram viz §19)
 * `LESSONS` — pole 3 řetězců pro kartu „CO SI ODNÉST"
 * `SERIES` — volitelně `{ name, index, total }` pro odznak série (§18)
 * Stav: `step` (0 = výchozí pozice), `flipped`, `tab`, `mode`, případně `vIdx` (varianta), `sideIdx` (vedlejší varianta, §14), `puzzle` + `revealed` (§17)
 
-## 7\. Interakce
+## 7. Interakce
 
 * `go(s)`: ohraničí krok na 0..total a **při kroku > 0 automaticky přepne na záložku „Tah"**
 * Záložka **Tah**: ikona figury v rámečku + titulek `1...Db6! — Výjimka z pravidla o dámě` + řádek `Černý · Dáma d8 → b6` + komentář; u rošády se do řádku přidá i přesun věže; u proměny se přidá `→ Dáma`
@@ -234,7 +234,7 @@ const MOVES = \[
 * Krok 0 zobrazuje v „Tah" výzvu „Stiskni ▶ pro první tah" (v režimu úlohy místo toho zadání úlohy — §17)
 * Přepnutí varianty resetuje `step` na 0, `tab` na „Strategie" a zavírá otevřenou vedlejší variantu; přepnutí barevného režimu neresetuje nic
 
-## 8\. Obsahová pravidla (pedagogika)
+## 8. Obsahová pravidla (pedagogika)
 
 * **Vše česky** — UI, komentáře, notace
 * **Česká notace:** K = král, D = dáma, V = věž, S = střelec, J = jezdec; pěšec bez písmene; `x` braní, `O-O` rošáda, `=D` proměna, `!` silný tah, `!?` zajímavý, `?` chyba, `??` hrubá chyba
@@ -244,10 +244,10 @@ const MOVES = \[
 * **Zugzwang, opozice a klíčová pole** se v koncovkách pojmenovávají výslovně — jsou to místa, kde se úloha láme
 * `marks` používat u tahů, kde je hrozba/cíl (napadená figura, slabé pole, pole vidličky)
 * Propojovat s Radovanovými principy: „Proč soupeř zahrál ten tah?", centrální kontrola, včasná rošáda, tempo
-* Závěrečná karta: **3 přenositelné lekce** + poznámka o relevanci pro úroveň \~400–600
+* Závěrečná karta: **3 přenositelné lekce** + poznámka o relevanci pro úroveň ~400–600
 * Tón: tykání, přátelský, občas řečnická otázka, žádné povýšenectví
 
-## 9\. Šachová přesnost a kontrola před odevzdáním
+## 9. Šachová přesnost a kontrola před odevzdáním
 
 * U každého tahu ověřit legálnost: výchozí pole obsahuje správnou figuru, cílové pole je dosažitelné (jezdec ±(1,2)/(2,1), diagonály střelců pole po poli, volná cesta u dlouhých tahů)
 * Braní pěšcem jen šikmo VPŘED (bílý nahoru = klesající index řádku); pěšec nikdy nebere do strany ani dozadu
@@ -256,15 +256,15 @@ const MOVES = \[
 * **Otočení desky:** zkontrolovat popisky souřadnic v obou orientacích (viz §4)
 * **Barevné režimy:** projít **všechny čtyři** a ověřit, že (a) bílá i černá figura je rozeznatelná na světlém i tmavém poli, (b) zvýraznění posledního tahu je vidět, ale nepřebíjí figuru, (c) kroužek `mark` je zřetelný proti desce, (d) souřadnice jsou čitelné, (e) nikde neprosvítá barva zapsaná natvrdo mimo `THEMES`, (f) symbol přepínače je ve své barvě `switchIcon` dobře vidět proti `panel` daného režimu, (g) **vrstvy `zone`, `keys` a `arrows` jsou čitelné a nepřebíjejí figury** (§15)
 * **Animace:** projít celou variantu tam i zpět a ověřit, že (a) žádná figura „neteleportuje", (b) braná figura se plynule vytratí a při kroku zpět zase objeví, (c) při rošádě se hýbe král i věž, (d) přepnutí varianty pozici přepne skokem, ne přeletem figur (§12), (e) **proměna nemění identitu figury** — glyf se přebarví, pohyb doběhne (§13.2)
-* **Start z FEN (§13):** artefakt startuje z `START\_FEN`, ne ze základního postavení; **číslo prvního tahu a strana na tahu odpovídají FEN** (§13.3); počty figur sedí se zadaným řetězcem — počítat pole po poli
-* **PGN u nestandardního startu** obsahuje `\[SetUp "1"]` a `\[FEN "…"]` a naimportuje se na Lichess do správné pozice (§13.4)
+* **Start z FEN (§13):** artefakt startuje z `START_FEN`, ne ze základního postavení; **číslo prvního tahu a strana na tahu odpovídají FEN** (§13.3); počty figur sedí se zadaným řetězcem — počítat pole po poli
+* **PGN u nestandardního startu** obsahuje `[SetUp "1"]` a `[FEN "…"]` a naimportuje se na Lichess do správné pozice (§13.4)
 * **Odznak hodnocení** (`+−` / `−+` / `=`) sedí se skutečným výsledkem linie (§13.6)
 * **Vedlejší varianty (§14):** každá větev je legální nad pozicí, ze které odbočuje; návrat do hlavní linie vrátí desku do stavu před odbočkou
 * **Režim úlohy (§17):** maskované žetony neprozrazují tah ani počtem znaků; po odhalení se stav dá vrátit zpět
 * **Patička (§21):** obsahuje verzi design systému, podle které byl artefakt skutečně postaven (ne tu nejnovější), název souboru sedí s `ARTEFAKT.nazev` a řádek je čitelný ve všech čtyřech režimech
 * FEN ze screenshotů nikdy nečíst — pozice stavět jen z ověřené posloupnosti tahů nebo z FEN dodaného Radovanem
 
-## 10\. Varianty šablony podle typu obsahu
+## 10. Varianty šablony podle typu obsahu
 
 * **Jedna linie (zahájení, taktický motiv, koncovka):** bez přepínače variant
 * **2 varianty (chyták/past, srovnání):** dvě pilulky vedle sebe (`flex: 1`), každá s názvem + notací větve
@@ -288,22 +288,22 @@ const MOVES = \[
 
   Společné pro obě: **první dlaždice = to, co uživatel uvidí nejčastěji; poslední = nejpodmíněnější linie** (závisí na chybě soupeře). Varianta s trestem musí v komentáři jmenovitě odkázat na variantu se správnou obranou a naopak — jinak si uživatel odnese past bez protijedu.
 
-* **Společný začátek variant:** definovat jednou jako `COMMON = \[...]` a v každé variantě `moves: \[...COMMON, ...vetev]`; komentáře společných tahů stručné, plné vysvětlení v hlavní variantě; `BRANCH\_AT = COMMON.length` pro barevné odlišení žetonů
+* **Společný začátek variant:** definovat jednou jako `COMMON = [...]` a v každé variantě `moves: [...COMMON, ...vetev]`; komentáře společných tahů stručné, plné vysvětlení v hlavní variantě; `BRANCH_AT = COMMON.length` pro barevné odlišení žetonů
 * **Rozbor celé partie:** stejná šablona; u dlouhých partií komentovat jen klíčové momenty, ostatní tahy jednořádkově
 * **Koncovka / úloha:** typicky jedna hlavní linie + vedlejší varianty přes `side` (§14), ne přes přepínač variant — hlavní linie je jen jedna, alternativy jsou odbočky, ne rovnocenné volby
 * Referenční artefakty: `italska-partie-kompletni.jsx` (typ A, čtyři varianty), `londynsky-system-kompletni.jsx` (struktura variant), `damsky-gambit-kompletni.jsx` (animace)
 
-## 11\. Export FEN a PGN
+## 11. Export FEN a PGN
 
 Na úplném konci stránky, **pod kartou „CO SI ODNÉST"**, jsou pouze **dvě pilulková tlačítka** vedle sebe (`flex: 1`, gap 8) — žádné textové boxy s FEN/PGN ani vysvětlující odstavec. Každé tlačítko má tučný hlavní popisek a malý podtitulek: „Kopírovat FEN" / „aktuální pozice" a „Kopírovat PGN" / „celá varianta". Po kliknutí tlačítko na 1,5 s zobrazí „✓ Zkopírováno" (časovač držet v `useRef`, aby ho rychlé opakované kliknutí nerozbilo).
 
-* **FEN** = aktuální pozice dle `step`, generuje `fenAt(moves, step)` nad pomocníkem `boardAt(moves, step)`. Strana na tahu z parity `step` **posunuté podle výchozího FEN** (§13.3); rošádová práva KQkq se ruší pohybem Z výchozího pole krále/věže i braním NA něm (kontrolovat i `m2`) a u nestandardního startu se berou z `START\_FEN`; en passant = pole PŘESKOČENÉ pěšcem při dvojkroku v bezprostředně posledním tahu; počítadlo půltahů se nuluje braním nebo tahem pěšce; číslo tahu = `fullmoveStart + floor((step + offset)/2)`.
-* **PGN** = celá aktuální varianta, generuje `pgnOf(variantName, moves)`. Tagy `\[Event]`, `\[Site "Claude artefakt"]`, `\[Result "\*"]`, movetext končí `\*`. **U nestandardního startu navíc `\[SetUp "1"]` a `\[FEN "…"]`** (§13.4). **Notace se převádí z české na anglickou** mapou `{ J→N, S→B, D→Q, V→R, K→K }` (Lichess/Chess.com české notaci nerozumí); tahy pěšců a `O-O` se nemění, u proměny se překládá i písmeno za rovnítkem (`=D` → `=Q`), anotace `!`, `!?` zůstávají.
+* **FEN** = aktuální pozice dle `step`, generuje `fenAt(moves, step)` nad pomocníkem `boardAt(moves, step)`. Strana na tahu z parity `step` **posunuté podle výchozího FEN** (§13.3); rošádová práva KQkq se ruší pohybem Z výchozího pole krále/věže i braním NA něm (kontrolovat i `m2`) a u nestandardního startu se berou z `START_FEN`; en passant = pole PŘESKOČENÉ pěšcem při dvojkroku v bezprostředně posledním tahu; počítadlo půltahů se nuluje braním nebo tahem pěšce; číslo tahu = `fullmoveStart + floor((step + offset)/2)`.
+* **PGN** = celá aktuální varianta, generuje `pgnOf(variantName, moves)`. Tagy `[Event]`, `[Site "Claude artefakt"]`, `[Result "*"]`, movetext končí `*`. **U nestandardního startu navíc `[SetUp "1"]` a `[FEN "…"]`** (§13.4). **Notace se převádí z české na anglickou** mapou `{ J→N, S→B, D→Q, V→R, K→K }` (Lichess/Chess.com české notaci nerozumí); tahy pěšců a `O-O` se nemění, u proměny se překládá i písmeno za rovnítkem (`=D` → `=Q`), anotace `!`, `!?` zůstávají.
 * **Kopírování:** `navigator.clipboard.writeText` s fallbackem přes skryté `textarea` + `document.execCommand('copy')`.
 
-\---
+---
 
-## 12\. Animace tahů (povinné od v3)
+## 12. Animace tahů (povinné od v3)
 
 Figury musí po šachovnici **plynule klouzat**, ne přeskakovat. Ověřená hodnota: **`transform 0.45s cubic-bezier(0.25, 0.8, 0.35, 1)`** — dost pomalé, aby šlo tah očima sledovat, dost rychlé, aby proklikávání variant neotravovalo.
 
@@ -315,13 +315,13 @@ Proto se drží **seznam figur s trvalým `id`**:
 
 ```js
 function initPieces() {
-  const back = \['R','N','B','Q','K','B','N','R'];
-  const ps = \[];
+  const back = ['R','N','B','Q','K','B','N','R'];
+  const ps = [];
   const cnt = {};
   const add = (side, t, r, c) => {
     const k = `${side}${t}`;
-    cnt\[k] = (cnt\[k] || 0) + 1;
-    ps.push({ id: `${k}${cnt\[k]}`, side, t, r, c, alive: true });
+    cnt[k] = (cnt[k] || 0) + 1;
+    ps.push({ id: `${k}${cnt[k]}`, side, t, r, c, alive: true });
   };
   back.forEach((t, c) => add('b', t, 0, c));
   for (let c = 0; c < 8; c++) add('b', 'P', 1, c);
@@ -331,17 +331,17 @@ function initPieces() {
 }
 
 function positionAt(moves, upTo) {
-  const ps = START\_FEN ? piecesFromFEN(START\_FEN) : initPieces();
-  const at = (r, c) => ps.find(p => p.alive \&\& p.r === r \&\& p.c === c);
+  const ps = START_FEN ? piecesFromFEN(START_FEN) : initPieces();
+  const at = (r, c) => ps.find(p => p.alive && p.r === r && p.c === c);
   for (let i = 0; i < upTo; i++) {
-    const mv = moves\[i];
-    const \[fr, fc, tr, tc] = mv.m;
+    const mv = moves[i];
+    const [fr, fc, tr, tc] = mv.m;
     const cap = at(tr, tc);
     if (cap) cap.alive = false;             // braná figura zůstává v poli, jen zhasne
     const pc = at(fr, fc);
     if (pc) { pc.r = tr; pc.c = tc; if (mv.promote) pc.t = mv.promote; }
     if (mv.m2) {                            // rošáda: druhý přesun (věž)
-      const \[f2r, f2c, t2r, t2c] = mv.m2;
+      const [f2r, f2c, t2r, t2c] = mv.m2;
       const rk = at(f2r, f2c);
       if (rk) { rk.r = t2r; rk.c = t2c; }
     }
@@ -355,7 +355,7 @@ function positionAt(moves, upTo) {
 * `key` v Reactu je **vždy `p.id`**, nikdy index ani souřadnice
 * braná figura se **nemaže** ze seznamu — dostane `alive: false`, zůstane na posledních souřadnicích a vyblede; jinak by zmizela skokem a při kroku zpět by se objevila bez přechodu
 * pořadí uvnitř tahu: nejdřív zneškodnit branou figuru, pak posunout táhnoucí (a případně proměnit), pak `m2`
-* `positionAt` je čistá funkce nad `step` → obalit `useMemo(() => positionAt(moves, step), \[vIdx, step, sideIdx])`
+* `positionAt` je čistá funkce nad `step` → obalit `useMemo(() => positionAt(moves, step), [vIdx, step, sideIdx])`
 
 ### 12.2 Renderování pohyblivé figury
 
@@ -373,7 +373,7 @@ function positionAt(moves, upTo) {
         fill={p.side === 'w' ? T.wFill : T.bFill}
         stroke={p.side === 'w' ? T.wStroke : T.bStroke}
         strokeWidth="1.2"
-        style={{ userSelect: 'none' }}>{GLYPH\[p.t]}</text>
+        style={{ userSelect: 'none' }}>{GLYPH[p.t]}</text>
     </g>
   ))}
 </g>
@@ -392,18 +392,18 @@ function positionAt(moves, upTo) {
 |**Rošáda**|král i věž se hýbou zároveň|`m2` v `positionAt`; obě dvojice polí zvýraznit (§4)|
 |**Proměna pěšce**|glyf se mění uprostřed pohybu|`promote` přepíše `p.t`, `id` zůstává → figura dojede a přebarví se (§13.2)|
 |**Skok přes více tahů**|figury letí přímo z výchozí na cílovou pozici|je to v pořádku a čitelné — nic neřešit|
-|**Přepnutí varianty**|figury by přelétaly mezi nesouvisejícími pozicemi|obalit skupinu `<g key={\\`pieces-${vIdx}`}>` → pozice se přepne skokem|
+|**Přepnutí varianty**|figury by přelétaly mezi nesouvisejícími pozicemi|obalit skupinu ``<g key={`pieces-${vIdx}`}>`` → pozice se přepne skokem|
 |**Otevření vedlejší varianty**|totéž|`key` rozšířit o `sideIdx` (§14)|
 |**Otočení desky (↕)**|všechny figury naráz přejedou na zrcadlené pozice|ponechat — je to čitelný „převrat" desky|
 |**Změna barevného režimu**|mění se jen barvy, ne pozice|žádná animace `fill`|
-|**Braní mimochodem**|model neumí|rozšířit `positionAt` o `clear: \[r,c]` (§6)|
+|**Braní mimochodem**|model neumí|rozšířit `positionAt` o `clear: [r,c]` (§6)|
 
 ### 12.4 Přístupnost
 
 ```js
 const reduce = typeof window !== 'undefined'
-  \&\& window.matchMedia
-  \&\& window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  && window.matchMedia
+  && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 // …
 transition: reduce ? 'none' : 'transform 0.45s cubic-bezier(0.25,0.8,0.35,1), opacity 0.35s ease',
 ```
@@ -418,30 +418,30 @@ transition: reduce ? 'none' : 'transform 0.45s cubic-bezier(0.25,0.8,0.35,1), op
 * ❌ vykreslování figur uvnitř smyčky po polích desky (matice 8×8)
 * ❌ **nová identita figury při proměně** (nový `id` = teleport)
 
-\---
+---
 
-## 13\. Start z libovolné pozice (nové ve v5)
+## 13. Start z libovolné pozice (nové ve v5)
 
 Do v4 uměl systém jen zahájení: `initPieces()` postavil 32 figur na základní postavení. Koncovky, studie a úlohy začínají kdekoli — proto tato sekce.
 
 ### 13.1 `piecesFromFEN`
 
 ```js
-const START\_FEN = '1k6/8/P6p/2P2Kp1/8/8/8/8 b - - 0 1';
+const START_FEN = '1k6/8/P6p/2P2Kp1/8/8/8/8 b - - 0 1';
 
 function piecesFromFEN(fen) {
-  const \[board] = fen.split(' ');
-  const ps = \[];
+  const [board] = fen.split(' ');
+  const ps = [];
   const counter = {};                       // kolik figur daného druhu už bylo
   board.split('/').forEach((row, r) => {
     let c = 0;
     for (const ch of row) {
-      if (/\\d/.test(ch)) { c += Number(ch); continue; }
+      if (/\d/.test(ch)) { c += Number(ch); continue; }
       const side = ch === ch.toUpperCase() ? 'w' : 'b';
       const t = ch.toUpperCase();
       const k = `${side}${t}`;
-      counter\[k] = (counter\[k] || 0) + 1;
-      ps.push({ id: `${k}${counter\[k]}`, side, t, r, c, alive: true });
+      counter[k] = (counter[k] || 0) + 1;
+      ps.push({ id: `${k}${counter[k]}`, side, t, r, c, alive: true });
       c += 1;
     }
   });
@@ -449,14 +449,14 @@ function piecesFromFEN(fen) {
 }
 ```
 
-`positionAt(moves, upTo)` začíná `piecesFromFEN(START\_FEN)` místo `initPieces()`. Pravidlo `key = p.id` (§12.1) zůstává beze změny — animace na tom stojí.
+`positionAt(moves, upTo)` začíná `piecesFromFEN(START_FEN)` místo `initPieces()`. Pravidlo `key = p.id` (§12.1) zůstává beze změny — animace na tom stojí.
 
 **Zlaté pravidlo:** dokud není ověřený FEN, artefakt se nestaví. Odhadovat pozici ze slovního popisu nebo screenshotu je zakázané (§9). Nejčastější chyba: zkopírovaná pozice **z prostředka lekce** místo z jejího začátku → nesedí počty figur. Postup je vždy: přetočit na začátek lekce → zkopírovat FEN → spočítat figury proti řetězci → vložit celý řetězec včetně pole „na tahu".
 
 ### 13.2 Proměna pěšce
 
 ```js
-{ m: \[1,0,0,0], san: 'a8=D', promote: 'Q', title: '…', comment: '…' }
+{ m: [1,0,0,0], san: 'a8=D', promote: 'Q', title: '…', comment: '…' }
 ```
 
 V `positionAt` po přesunu: `if (mv.promote) pc.t = mv.promote;`. Glyf se přebarví okamžitě, figura si **ponechá `id`**, takže animace posledního kroku doběhne. Do řádku v záložce Tah se přidá `→ Dáma`.
@@ -466,7 +466,7 @@ V `positionAt` po přesunu: `if (mv.promote) pc.t = mv.promote;`. Glyf se přeba
 Žetony tahů i záložka Historie **nesmí** začínat od „1.". Číslo se bere z `fullmove` ve FEN a parita z pole „na tahu":
 
 ```js
-const \[, sideToMove, , , , fullmove] = START\_FEN.split(' ');
+const [, sideToMove, , , , fullmove] = START_FEN.split(' ');
 const startFull = Number(fullmove);
 const offset = sideToMove === 'b' ? 1 : 0;     // černý na tahu = lichý půltah
 
@@ -484,11 +484,11 @@ Pokud studie začíná černým tahem, první žeton je `1...f4`, ne `1.f4`. Ste
 Bez těchto tagů Lichess partii naimportuje ze základního postavení a rozsype ji:
 
 ```
-\[Event "…"]
-\[Site "Claude artefakt"]
-\[SetUp "1"]
-\[FEN "1k6/8/P6p/2P2Kp1/8/8/8/8 b - - 0 1"]
-\[Result "\*"]
+[Event "…"]
+[Site "Claude artefakt"]
+[SetUp "1"]
+[FEN "1k6/8/P6p/2P2Kp1/8/8/8/8 b - - 0 1"]
+[Result "*"]
 ```
 
 Movetext u startu černým tahem začíná `1...`. Převod české notace na anglickou (§11) platí i pro písmeno za rovnítkem (`=D` → `=Q`).
@@ -509,20 +509,20 @@ Text pilulky je monospace 11 px, padding `2px 8px`, `borderRadius: 10`. **Odznak
 
 Artefakty typu koncovka/úloha mají v záložce Strategie **první odstavec formulovaný jako otázka** („Bílý je na tahu. Najdi jediný tah, který drží remízu."). Bez ní artefakt jen předvádí řešení, místo aby učil hledat.
 
-\---
+---
 
-## 14\. Vedlejší varianty (nové ve v5)
+## 14. Vedlejší varianty (nové ve v5)
 
 Do v4 se alternativy vysvětlovaly jen slovně v komentáři. To stačí u zahájení, ale u koncovek je potřeba **ukázat na desce, co se stane po chybě** — a pak se vrátit zpět do hlavní linie.
 
 ### 14.1 Datový model
 
 ```js
-{ m: \[5,2,4,2], san: 'Kc5!', title: '…', comment: '…',
-  side: \[{
+{ m: [5,2,4,2], san: 'Kc5!', title: '…', comment: '…',
+  side: [{
     kind: 'trap',                       // 'variant' | 'trap' | 'calc'
     label: 'A co 2.Kc6?',               // text tlačítka, vždy otázka nebo krátký popis
-    moves: \[ { m:\[…], san:'Kc6?', title:'…', comment:'…' }, … ],
+    moves: [ { m:[…], san:'Kc6?', title:'…', comment:'…' }, … ],
     verdict: 'Remíza — pěšec doběhne o tempo dřív.',
   }],
 }
@@ -546,9 +546,9 @@ Do v4 se alternativy vysvětlovaly jen slovně v komentáři. To stačí u zahá
 * `verdict` se zobrazí na konci větve jako zvýrazněný řádek — jednou větou, co si z odbočky odnést
 * `key` skupiny figur se rozšíří na `pieces-${vIdx}-${sideIdx}`, aby se pozice přepnula skokem (§12.3)
 
-\---
+---
 
-## 15\. Vrstvy zvýraznění (nové ve v5)
+## 15. Vrstvy zvýraznění (nové ve v5)
 
 Kroužky `marks` z v2 zůstávají, ale samy nestačí: koncovky potřebují ukázat **oblast** (čtverec pěšce), **pole, o která se hraje** a **směr plánu**. Význam barev je pevný a nesmí se míchat.
 
@@ -564,7 +564,7 @@ Kroužky `marks` z v2 zůstávají, ale samy nestačí: koncovky potřebují uk�
 ```jsx
 // zone
 <rect x={px(c0)} y={py(r0)}
-  width={(c1 - c0 + 1) \* SQ} height={(r1 - r0 + 1) \* SQ}
+  width={(c1 - c0 + 1) * SQ} height={(r1 - r0 + 1) * SQ}
   fill={T.gold} fillOpacity={0.10}
   stroke={T.gold} strokeWidth="2" strokeDasharray="6 5" />
 
@@ -579,16 +579,16 @@ Kroužky `marks` z v2 zůstávají, ale samy nestačí: koncovky potřebují uk�
 * `zone` a `keys` se počítají v souřadnicích řádek/sloupec a otočení řeší `px()`/`py()` — nikdy neindexovat podruhé
 * `markerEnd` definovat v `<defs>` **zvlášť pro každou barvu** (`arrowhead-gold`, `arrowhead-mark`), protože SVG marker nedědí `stroke` rodiče
 * Naráz nejvýš **dvě šipky a jedna zóna**. Víc = deska přestává být čitelná; zbytek patří do komentáře.
-* Všechny vrstvy jsou vázané na konkrétní tah (`moves\[i]`), ne na globální stav — při kroku zpět zmizí samy
+* Všechny vrstvy jsou vázané na konkrétní tah (`moves[i]`), ne na globální stav — při kroku zpět zmizí samy
 
-\---
+---
 
-## 16\. Počítadlo závodu (nové ve v5)
+## 16. Počítadlo závodu (nové ve v5)
 
 U pěšcových koncovek se rozhoduje o jediné tempo. Slovní „bílý je o tah dřív" se hůř chápe než číslo.
 
 ```js
-{ m: \[…], san: 'a5!', race: { w: 4, b: 5, note: 'Bílý mění o tempo dřív — proto tenhle tah, ne a4.' } }
+{ m: […], san: 'a5!', race: { w: 4, b: 5, note: 'Bílý mění o tempo dřív — proto tenhle tah, ne a4.' } }
 ```
 
 Zobrazuje se jako pruh **pod deskou, nad navigací** (§5.4), jen u tahů, které `race` mají:
@@ -604,9 +604,9 @@ Zobrazuje se jako pruh **pod deskou, nad navigací** (§5.4), jen u tahů, kter�
 * Vedoucí strana má číslo tučně; při rovnosti obě `muted`
 * Pruh **nesmí** být trvale na obrazovce — jen v tazích, kde se závod skutečně počítá, jinak zevšední
 
-\---
+---
 
-## 17\. Režim úlohy (nové ve v5)
+## 17. Režim úlohy (nové ve v5)
 
 Aktivní hledání tahu učí víc než proklikávání hotového řešení. Režim úlohy je **volitelný** a zapíná se pilulkou v pruhu se záložkami.
 
@@ -623,9 +623,9 @@ Aktivní hledání tahu učí víc než proklikávání hotového řešení. Re�
 
 `hidden: true` patří **jen tahům strany, která řeší** (typicky bílý). Soupeřovy odpovědi zůstávají viditelné — jinak úloha přestává být šachová a stává se hádankou.
 
-\---
+---
 
-## 18\. Série artefaktů (nové ve v5)
+## 18. Série artefaktů (nové ve v5)
 
 Artefakty vydávané jako řada (např. **Pěšcové koncovky — 8 lekcí**) musí být poznat na první pohled a nesmí si vysvětlovat stejný pojem pokaždé jinak.
 
@@ -648,7 +648,7 @@ const GLOSSARY = {
   // …
 };
 
-const CONCEPTS = \[
+const CONCEPTS = [
   GLOSSARY.opozice,
   GLOSSARY.zugzwang,
   { name: 'Chráněný volný pěšec', text: '…' },   // pojem specifický pro tuto lekci
@@ -657,9 +657,9 @@ const CONCEPTS = \[
 
 Sdílené pojmy jdou **první**, lekci vlastní pojmy za nimi. Přeformulovat sdílenou definici „líp" v jednom artefaktu je chyba — konzistence je pro učení cennější než stylistika.
 
-\---
+---
 
-## 19\. Mini-diagramy v záložce Koncepty (nové ve v5)
+## 19. Mini-diagramy v záložce Koncepty (nové ve v5)
 
 Abstraktní pojem se pochopí rychleji s obrázkem. Koncept proto může nést vlastní **statický diagram**:
 
@@ -678,9 +678,9 @@ Abstraktní pojem se pochopí rychleji s obrázkem. Koncept proto může nést v
 * `caption` je 12 px `muted` kurzívou pod diagramem
 * Nejvýš **dva** diagramy na artefakt; ostatní pojmy zůstávají textové
 
-\---
+---
 
-## 20\. Rozhodovací tabulka funkcí
+## 20. Rozhodovací tabulka funkcí
 
 Ne každý artefakt potřebuje všechno. Tabulka říká, co zapnout podle typu:
 
@@ -705,9 +705,9 @@ Ne každý artefakt potřebuje všechno. Tabulka říká, co zapnout podle typu:
 
 **Pravidlo úspornosti:** zapnutá funkce, která v daném artefaktu nic nevysvětluje, škodí — rozptyluje a zdražuje údržbu. Když váháš, nech ji vypnutou.
 
-\---
+---
 
-## 21\. Verzování artefaktů a patička (nové ve v5)
+## 21. Verzování artefaktů a patička (nové ve v5)
 
 Každý artefakt musí být zvenčí poznat, podle které verze design systému vznikl. Bez toho nejde po roce rozhodnout, jestli je artefakt v pořádku, nebo jen starý.
 
@@ -720,7 +720,7 @@ Každý artefakt musí být zvenčí poznat, podle které verze design systému 
 |Název souboru|❌ **nepoužívat**|při upgradu na novou verzi by bylo nutné soubor přejmenovat → rozbité odkazy, dvě kopie vedle sebe, nejasno, která je živá|
 |Komentář v kódu|⚪ volitelné|neuškodí, ale sám nestačí — uživatel ho neuvidí|
 
-**Výjimka:** dokument samotné specifikace verzi v názvu nese (`design-system-sachovych-artefaktu\_v5.md`), protože jednotlivé verze mají existovat vedle sebe jako samostatné dokumenty.
+**Výjimka:** dokument samotné specifikace verzi v názvu nese (`design-system-sachovych-artefaktu_v5.md`), protože jednotlivé verze mají existovat vedle sebe jako samostatné dokumenty.
 
 ### 21.2 Konstanta
 
@@ -748,7 +748,7 @@ const ARTEFAKT = {
   color: T.muted, opacity: 0.75,
 }}>
   design systém {ARTEFAKT.ds} · {ARTEFAKT.nazev} · {ARTEFAKT.vznik}
-  {ARTEFAKT.revize \&\& ` · rev. ${ARTEFAKT.revize}`}
+  {ARTEFAKT.revize && ` · rev. ${ARTEFAKT.revize}`}
 </div>
 ```
 
@@ -774,9 +774,9 @@ design systém v5 · italska-partie-kompletni · 2026-08
 |Přestavba podle novější specifikace + kontrola §9|zvýšit|doplnit|
 |Nový artefakt|aktuální verze|`null`|
 
-\---
+---
 
-## 22\. Migrace v4 → v5
+## 22. Migrace v4 → v5
 
 Existující artefakty se **nemusí** přepisovat. Pokud se ale artefakt otevírá kvůli opravě, doplní se při té příležitosti:
 
@@ -788,7 +788,7 @@ Existující artefakty se **nemusí** přepisovat. Pokud se ale artefakt otevír
 
 **Zpětná kompatibilita zápisu:** dřívější dokumenty (např. `zadani-artefaktu-pawn-endgame-bootcamp.md`) odkazují na „§13.5 zone" a „§13.6 odznak hodnocení". Ve v5 se `zone` přesunula do **§15** (jako součást vrstev zvýraznění) a odznak hodnocení je **§13.5** (posunulo se o jedno nahoru, protože PGN se sloučilo do §13.4). Při čtení starších zadání se řídit v5.
 
-\---
+---
 
 *Konec specifikace v5.*
 
