@@ -1,6 +1,8 @@
-# Design systém šachových artefaktů (v5)
+# Design systém šachových artefaktů (v6)
 
 Specifikace pro tvorbu interaktivních šachových artefaktů (simulace partií, zahájení, chytáků, taktických motivů, **koncovek a úloh**). Každý nový artefakt musí vizuálně i strukturálně odpovídat referenčním artefaktům `londynsky-system-kompletni.jsx` (více variant, rošáda), `damsky-gambit-kompletni.jsx` (plynulá animace figur) a `italska-partie-kompletni.jsx` (čtyři barevné režimy, čtyři varianty se společným začátkem).
+
+**Changelog v6:** **plynulý pohyb figur je povinný v každém artefaktu a u každého zdroje dat** — spouštěčem byl Stockfish analyzátor, kde se deska překreslovala z FEN a nebylo vidět, odkud figura táhla. Nově: **skok na vzdálený tah vždy ukáže poslední tah** dvoufázově — skokem na tah před cílem, pak animace (§12.4); oddělení **logického kroku** a **kroku desky** (§12.4, §6); **identita figur z FEN / PGN / enginu** přes `buildTimeline` s pojistkou `syncToFen` (§12.5); **pravidla pro vanilla JS artefakty** bez Reactu — trvalá vrstva figur, mapa uzlů podle `id` (§12.6); **tahy klepnutím** s kratší animací (§12.7); **jediná tabulka časování `MOTION`** (§12.3); **braní mimochodem** jako standard přes `clear` (§6, §12); rozšířené kontrolní seznamy (§9, §12.10); nová migrace v5 → v6 (§23). Soubor specifikace se od v6 jmenuje **bez čísla verze** (`design-system-sachovych-artefaktu.md`) — verze drží git tagy (§21.1). Technicky: odstraněno zdvojené escapování (`\[`, `\*`, `\_`) z v5, které se zobrazovalo v ukázkách kódu.
 
 **Changelog v5:** systém přestává být jen na zahájení. Nově **start z libovolné pozice (FEN)** a **proměna pěšce** (§13) — bez toho nešlo postavit koncovky; **větvené vedlejší varianty** se sémantickými druhy `variant` / `trap` / `calc`, nejvýš jedna úroveň zanoření (§14); **vrstvy zvýraznění** `zone` / `keys` / `arrows` s pevným barevným významem (§15); **počítadlo závodu** pro tempově kritické pozice (§16); **režim úlohy** s maskovanými žetony tahů (§17); **odznaky série a sdílený glosář** pro artefakty vydávané jako řada (§18); **statické mini-diagramy** v záložce Koncepty (§19); **rozhodovací tabulka funkcí** podle typu artefaktu (§20); **povinná patička s verzí design systému** (§21). Přepsáno **§10** — pořadí variant se nově řídí účelem artefaktu (repertoárový vs. chytákový), ne jedním univerzálním pravidlem. Rozšířen kontrolní seznam §9.
 
@@ -15,10 +17,11 @@ Specifikace pro tvorbu interaktivních šachových artefaktů (simulace partií,
 ## 1. Technologie
 
 * **React, jeden soubor `.jsx`**, default export `App` bez povinných props
-* Pouze `useState`, `useMemo` a `useRef` (na časovače tlačítek „Zkopírováno"), žádné externí knihovny
+* Pouze `useState`, `useMemo` a `useRef` (časovače tlačítek „Zkopírováno", `requestAnimationFrame` pro dvoufázový skok §12.4), žádné externí knihovny
+* **Výjimka — nástroje** (analyzátor, trenažér s enginem): smí být čisté HTML + JS s knihovnou pro pravidla (např. chess.js) a enginem; vzhled, režimy a animace se ale řídí touto specifikací beze změny (§12.6)
 * **Inline styly** (JS objekty), žádný Tailwind
 * Šachovnice jako **SVG** generované v JS (žádné obrázky)
-* **Animace přes CSS `transition`** na `transform` a `opacity` — žádné animační knihovny, žádné `requestAnimationFrame`
+* **Animace přes CSS `transition`** na `transform` a `opacity` — žádné animační knihovny; `requestAnimationFrame` jen pro spuštění dvoufázového skoku (§12.4), nikdy pro samotný pohyb
 * Fonty přes Google Fonts import v `<style>` bloku
 * Artefakt vždy vytvořit jako **skutečný soubor** (create_file + present_files), nikdy jako markdown blok
 * Název souboru: česky, kebab-case, bez diakritiky (např. `past-v-italske-partii.jsx`)
@@ -218,16 +221,16 @@ const MOVES = [
 * **Pozice se počítá jako seznam figur s identitou:** `positionAt(moves, upTo)` vrací pole objektů `{ id, side, t, r, c, alive }` — viz §12. Matice 8×8 zůstává jen jako interní pomocník `boardAt()` pro generování FEN.
 * **Výchozí pozice:** základní postavení přes `initPieces()`, libovolná pozice přes `piecesFromFEN(START_FEN)` — viz §13.1
 * **Proměna pěšce:** klíč `promote` (§13.2) — od v5 součást standardu
-* Braní mimochodem (en passant) tento model neumí — linii s en passant buď nevybírat, nebo model rozšířit o `clear: [r,c]` (a v `positionAt` figuru na tom poli označit `alive: false`)
+* **Braní mimochodem (en passant)** — od v6 standard: tah nese `clear: [r,c]` = pole braného pěšce (jiné než cílové); `positionAt` na něm figuru označí `alive: false` (§12.1). Příklad: bílý pěšec e5 bere d5 mimochodem → `m: [3,4,2,3], clear: [3,3], san: 'exd6'`
 * `STRATEGY` / `variant.strategy` — 2–4 odstavce úvodní strategie (záložka Strategie); víceodstavcový text psát s `\n\n` a renderovat přes `split('\n\n')`
 * `CONCEPTS` — pole `{ name, text, diagram? }` s vysvětlením klíčových pojmů (sdílené všemi variantami; mini-diagram viz §19)
 * `LESSONS` — pole 3 řetězců pro kartu „CO SI ODNÉST"
 * `SERIES` — volitelně `{ name, index, total }` pro odznak série (§18)
-* Stav: `step` (0 = výchozí pozice), `flipped`, `tab`, `mode`, případně `vIdx` (varianta), `sideIdx` (vedlejší varianta, §14), `puzzle` + `revealed` (§17)
+* Stav: `step` (0 = výchozí pozice; logický krok pro texty a žetony), `board` = `{ step, instant }` (co je právě nakreslené na desce, §12.4), `flipped`, `tab`, `mode`, případně `vIdx` (varianta), `sideIdx` (vedlejší varianta, §14), `puzzle` + `revealed` (§17)
 
 ## 7. Interakce
 
-* `go(s)`: ohraničí krok na 0..total a **při kroku > 0 automaticky přepne na záložku „Tah"**
+* `go(s)`: ohraničí krok na 0..total, **při kroku > 0 automaticky přepne na záložku „Tah"** a desku posune podle §12.4 (±1 animovaně, vzdálený skok dvoufázově, krok 0 skokem) — všechna navigace (tlačítka, žetony, Historie) jde přes `go()`, nikdy přímo přes `setStep`
 * Záložka **Tah**: ikona figury v rámečku + titulek `1...Db6! — Výjimka z pravidla o dámě` + řádek `Černý · Dáma d8 → b6` + komentář; u rošády se do řádku přidá i přesun věže; u proměny se přidá `→ Dáma`
 * Záložka **Historie**: klikatelné řádky (číslo tahu, glyf figury, SAN, z→na), klik skočí na daný krok; **nehrané tahy se zobrazují ztlumeně** (`opacity: 0.45`), aktuální má podbarvení `divider`
 * Figuru pro popisky tahu `i` získat přes pomocníka `pieceBefore(i)` = `positionAt(moves, i)` a najít živou figuru na výchozím poli
@@ -255,7 +258,7 @@ const MOVES = [
 * `marks` musí odpovídat skutečně kontrolovaným polím (jezdec na d4 kontroluje b3, b5, c2, c6, e2, e6, f3, f5)
 * **Otočení desky:** zkontrolovat popisky souřadnic v obou orientacích (viz §4)
 * **Barevné režimy:** projít **všechny čtyři** a ověřit, že (a) bílá i černá figura je rozeznatelná na světlém i tmavém poli, (b) zvýraznění posledního tahu je vidět, ale nepřebíjí figuru, (c) kroužek `mark` je zřetelný proti desce, (d) souřadnice jsou čitelné, (e) nikde neprosvítá barva zapsaná natvrdo mimo `THEMES`, (f) symbol přepínače je ve své barvě `switchIcon` dobře vidět proti `panel` daného režimu, (g) **vrstvy `zone`, `keys` a `arrows` jsou čitelné a nepřebíjejí figury** (§15)
-* **Animace:** projít celou variantu tam i zpět a ověřit, že (a) žádná figura „neteleportuje", (b) braná figura se plynule vytratí a při kroku zpět zase objeví, (c) při rošádě se hýbe král i věž, (d) přepnutí varianty pozici přepne skokem, ne přeletem figur (§12), (e) **proměna nemění identitu figury** — glyf se přebarví, pohyb doběhne (§13.2)
+* **Animace:** projít celou variantu tam i zpět a ověřit, že (a) žádná figura „neteleportuje", (b) braná figura se plynule vytratí a při kroku zpět zase objeví, (c) při rošádě se hýbe král i věž, (d) přepnutí varianty pozici přepne skokem, ne přeletem figur (§12), (e) **proměna nemění identitu figury** — glyf se přebarví, pohyb doběhne (§13.2), (f) **klik na vzdálený žeton / řádek Historie / ⏭ ukáže poslední tah jako pohyb** z výchozího pole (§12.4), (g) zvýraznění posledního tahu se objeví současně s pohybem, ne dřív, (h) braní mimochodem nechá zhasnout správného pěšce, (i) u nástrojů s daty z FEN / PGN / enginu projít vložené PGN tam i zpět a ověřit totéž (§12.5–12.6), (j) rychlé opakované klikání neskončí v rozporu mezi deskou a textem
 * **Start z FEN (§13):** artefakt startuje z `START_FEN`, ne ze základního postavení; **číslo prvního tahu a strana na tahu odpovídají FEN** (§13.3); počty figur sedí se zadaným řetězcem — počítat pole po poli
 * **PGN u nestandardního startu** obsahuje `[SetUp "1"]` a `[FEN "…"]` a naimportuje se na Lichess do správné pozice (§13.4)
 * **Odznak hodnocení** (`+−` / `−+` / `=`) sedí se skutečným výsledkem linie (§13.6)
@@ -291,7 +294,7 @@ const MOVES = [
 * **Společný začátek variant:** definovat jednou jako `COMMON = [...]` a v každé variantě `moves: [...COMMON, ...vetev]`; komentáře společných tahů stručné, plné vysvětlení v hlavní variantě; `BRANCH_AT = COMMON.length` pro barevné odlišení žetonů
 * **Rozbor celé partie:** stejná šablona; u dlouhých partií komentovat jen klíčové momenty, ostatní tahy jednořádkově
 * **Koncovka / úloha:** typicky jedna hlavní linie + vedlejší varianty přes `side` (§14), ne přes přepínač variant — hlavní linie je jen jedna, alternativy jsou odbočky, ne rovnocenné volby
-* Referenční artefakty: `italska-partie-kompletni.jsx` (typ A, čtyři varianty), `londynsky-system-kompletni.jsx` (struktura variant), `damsky-gambit-kompletni.jsx` (animace)
+* Referenční artefakty: `italska-partie-kompletni.jsx` (typ A, čtyři varianty), `londynsky-system-kompletni.jsx` (struktura variant), `damsky-gambit-kompletni.jsx` (animace); pro nástroje ve vanilla JS `stockfish-analyzator` po přestavbě na v6 (§23)
 
 ## 11. Export FEN a PGN
 
@@ -303,13 +306,15 @@ Na úplném konci stránky, **pod kartou „CO SI ODNÉST"**, jsou pouze **dvě 
 
 ---
 
-## 12. Animace tahů (povinné od v3)
+## 12. Animace tahů (povinné od v3, rozšířeno ve v6)
 
 Figury musí po šachovnici **plynule klouzat**, ne přeskakovat. Ověřená hodnota: **`transform 0.45s cubic-bezier(0.25, 0.8, 0.35, 1)`** — dost pomalé, aby šlo tah očima sledovat, dost rychlé, aby proklikávání variant neotravovalo.
 
+**Proč je to povinné všude (poučení z v5):** v5 počítala s animací jen v React artefaktech s vlastním seznamem tahů. Stockfish analyzátor (vanilla JS, pozice z FEN a z enginu) desku po každém kroku překreslil celou znovu — figury přeskakovaly a u kliknutí na tah v tabulce nebylo vidět, **odkud figura táhla**. Zvýraznění `lastFrom` / `lastTo` samo nestačí: dvě podbarvená pole v plné pozici se přehlédnou, pohyb figury ne. Od v6 proto platí: **každá šachovnice v každém artefaktu animuje každý tah, který vede do zobrazené pozice** — bez ohledu na framework, zdroj dat (vlastní `MOVES`, PGN, FEN, engine, klepnutí uživatele) a způsob navigace.
+
 ### 12.1 Základní princip: identita figur
 
-Animace funguje jen tehdy, když React mezi dvěma kroky **znovupoužije stejný DOM uzel**. To vylučuje kreslení desky po polích (`key={r}-${c}`) — při tahu by zanikl jeden uzel a vznikl jiný a prohlížeč nemá co animovat.
+Animace funguje jen tehdy, když se mezi dvěma kroky **znovupoužije stejný DOM uzel** figury. To vylučuje kreslení desky po polích (`key={r}-${c}`) i mazání a nové vykreslení celé SVG — při tahu by zanikl jeden uzel a vznikl jiný a prohlížeč nemá co animovat.
 
 Proto se drží **seznam figur s trvalým `id`**:
 
@@ -336,7 +341,7 @@ function positionAt(moves, upTo) {
   for (let i = 0; i < upTo; i++) {
     const mv = moves[i];
     const [fr, fc, tr, tc] = mv.m;
-    const cap = at(tr, tc);
+    const cap = mv.clear ? at(mv.clear[0], mv.clear[1]) : at(tr, tc);  // clear = braní mimochodem (§6)
     if (cap) cap.alive = false;             // braná figura zůstává v poli, jen zhasne
     const pc = at(fr, fc);
     if (pc) { pc.r = tr; pc.c = tc; if (mv.promote) pc.t = mv.promote; }
@@ -352,19 +357,20 @@ function positionAt(moves, upTo) {
 
 **Klíčová pravidla:**
 
-* `key` v Reactu je **vždy `p.id`**, nikdy index ani souřadnice
+* `key` v Reactu (resp. klíč v mapě uzlů ve vanilla JS, §12.6) je **vždy `p.id`**, nikdy index ani souřadnice
 * braná figura se **nemaže** ze seznamu — dostane `alive: false`, zůstane na posledních souřadnicích a vyblede; jinak by zmizela skokem a při kroku zpět by se objevila bez přechodu
 * pořadí uvnitř tahu: nejdřív zneškodnit branou figuru, pak posunout táhnoucí (a případně proměnit), pak `m2`
-* `positionAt` je čistá funkce nad `step` → obalit `useMemo(() => positionAt(moves, step), [vIdx, step, sideIdx])`
+* `positionAt` je čistá funkce nad krokem → obalit `useMemo(() => positionAt(moves, boardStep), [vIdx, sideIdx, boardStep])` (`boardStep` viz §12.4)
+* **Braní mimochodem je od v6 součást standardu** přes klíč `clear` (§6) — už to není „model neumí"
 
-### 12.2 Renderování pohyblivé figury
+### 12.2 Renderování pohyblivé figury (React)
 
 ```jsx
-<g key={`pieces-${vIdx}`}>
+<g key={`pieces-${vIdx}-${sideIdx}`}>
   {pieces.map(p => (
     <g key={p.id} style={{
       transform: `translate(${px(p.c) + SQ/2}px, ${py(p.r) + SQ/2}px)`,
-      transition: 'transform 0.45s cubic-bezier(0.25, 0.8, 0.35, 1), opacity 0.35s ease',
+      transition: instant || reduce ? 'none' : MOTION.move,
       opacity: p.alive ? 1 : 0,
       pointerEvents: 'none',
     }}>
@@ -382,33 +388,217 @@ function positionAt(moves, upTo) {
 * **CSS `transform` ve `style`, ne SVG atribut `transform`** — atribut se v Safari na iPhonu nepřechází spolehlivě; CSS varianta ano. Jednotky `px` jsou povinné.
 * `translate` míří na **střed pole** (`px(c) + SQ/2`), proto glyf uvnitř sedí na 0,0 s `dominantBaseline="central"`
 * `opacity` se přechází kratší dobu (0,35 s) než pohyb — braná figura zmizí dřív, než na ni útočník dorazí
-* `pointerEvents: 'none'` — figury nejsou klikatelné, ovládá se jen navigací
+* `pointerEvents: 'none'` — figury nejsou klikatelné; klepání na desku (§12.7) chytá vrstva polí pod nimi
 * barvy figur berou tokeny `wFill/wStroke/bFill/bStroke` aktuálního režimu; **při změně režimu se `fill` nesmí animovat**
+* `instant` je příznak „tahle změna se nemá animovat" — viz §12.4
 
-### 12.3 Zvláštní případy
+### 12.3 Časování (jediný zdroj pravdy)
+
+```js
+const EASE = 'cubic-bezier(0.25, 0.8, 0.35, 1)';
+const MOTION = {
+  move: `transform 0.45s ${EASE}, opacity 0.35s ease`,   // tah v navigaci ▶ ◀, tah enginu, skok (§12.4)
+  user: `transform 0.22s ${EASE}, opacity 0.18s ease`,   // tah, který uživatel sám udělal klepnutím (§12.7)
+};
+```
+
+|Situace|Přechod|Proč|
+|-|-|-|
+|▶ / ◀ o jeden půltah (vpřed i vzad)|`MOTION.move`|základní případ — uživatel sleduje, odkud a kam|
+|skok na libovolný tah (žeton, Historie, řádek tabulky, bod grafu, ⏭)|skokem na tah před ním, pak `MOTION.move`|viz §12.4|
+|tah soupeře / enginu jako odpověď na tah uživatele|`MOTION.move`|uživatel ho nečeká, musí ho vidět|
+|tah uživatele klepnutím na desce|`MOTION.user`|uživatel ví, odkud táhl; dlouhá animace by zdržovala|
+|⏮, krok 0, přepnutí varianty, otevření/zavření větve, načtení nové partie nebo FEN|bez animace (`instant`)|pozice spolu nesouvisí, přelet figur by mátl|
+|otočení desky ↕|`MOTION.move`|čitelný „převrat" desky|
+|změna barevného režimu|žádný přechod barev|mění se jen barvy|
+
+Jiné časy než v této tabulce se nepoužívají — i drobná odchylka mezi artefakty série je vidět.
+
+### 12.4 Skok na vzdálený tah: vždy ukázat poslední tah
+
+Do v5 se při skoku přes více tahů nechaly figury letět přímo do cílové pozice. V praxi (klik na řádek tabulky v analyzátoru, na žeton, na bod v grafu) se tím ztratí to nejdůležitější: **který tah do pozice vedl a odkud figura přišla**. Při skoku se dvě tři figury pohnou naráz a oko nepozná, která táhla naposledy.
+
+**Pravidlo v6:** na cílový krok `k > 0` se přejde **dvoufázově**:
+
+1. deska se **bez animace** postaví do pozice `k − 1` (tah před cílem),
+2. v dalším snímku se **animovaně** zahraje tah `k` — figura viditelně odjede ze svého pole.
+
+Výjimky: posun o ±1 se animuje přímo (i dozadu — figura se vrátí na výchozí pole); cíl `k = 0` a všechny situace „bez animace" z tabulky §12.3 se přepnou skokem.
+
+Proto se od v6 odděluje **logický krok** (texty, žetony, záložky — mění se hned) od **kroku desky** (co je zrovna nakreslené):
+
+```jsx
+const [step, setStep] = useState(0);                         // logický krok
+const [board, setBoard] = useState({ step: 0, instant: true });  // krok desky
+const raf = useRef(0);
+
+const go = (s) => {
+  s = Math.max(0, Math.min(total, s));
+  cancelAnimationFrame(raf.current);
+  setStep(s);
+  if (s > 0) setTab('tah');
+  if (s === 0) { setBoard({ step: 0, instant: true }); return; }
+  if (Math.abs(s - board.step) <= 1) { setBoard({ step: s, instant: false }); return; }
+  setBoard({ step: s - 1, instant: true });                  // fáze 1: skokem na tah před cílem
+  raf.current = requestAnimationFrame(() =>                  // dvojitý rAF = fáze 1 je opravdu vykreslená
+    raf.current = requestAnimationFrame(() => setBoard({ step: s, instant: false })));
+};
+
+const pieces = useMemo(() => positionAt(moves, board.step), [vIdx, sideIdx, board.step]);
+const instant = board.instant;
+```
+
+* **Zvýraznění `lastFrom` / `lastTo`, `marks`, `zone`, `keys`, `arrows` a počítadlo závodu** se berou z `board.step`, ne ze `step` — musí se objevit spolu s pohybem figury, ne o snímek dřív
+* `requestAnimationFrame` je od v6 povolený **výhradně** pro tuto dvoufázovou změnu; samotná animace zůstává čisté CSS `transition`
+* rychlé opakované klikání: `cancelAnimationFrame` ruší rozjetou fázi 2, takže deska nikdy neskončí v jiném kroku, než ukazují texty
+* v režimu úlohy (§17) se odhalení tahu chová jako posun o +1
+
+### 12.5 Identita figur z FEN, PGN a enginu (`buildTimeline`)
+
+Artefakty, které netahají z vlastního pole `MOVES`, ale z dat zvenku (PGN vložené uživatelem, pozice z chess.js, hlavní varianta enginu, FEN), **nesmí stavět figury z FEN pro každý krok znovu** — každý krok by dostal nové identity a figury by přeskakovaly. Místo toho se identity předpočítají jednou pro celou partii:
+
+```js
+const FILES = 'abcdefgh';
+const sq2rc = (sq) => [8 - Number(sq[1]), FILES.indexOf(sq[0])];   // 'e4' → [4, 4]
+
+// jeden krok: prev = seznam figur (včetně mrtvých), mv = { from:'e2', to:'e4', promo:'q' } (UCI / chess.js)
+function applyMove(prev, mv) {
+  const ps = prev.map(p => ({ ...p }));
+  const at = (r, c) => ps.find(p => p.alive && p.r === r && p.c === c);
+  const [fr, fc] = sq2rc(mv.from), [tr, tc] = sq2rc(mv.to);
+  const pc = at(fr, fc);
+  if (!pc) return ps;                                           // nemá nastat — ohlídá syncToFen
+  let cap = at(tr, tc);
+  if (!cap && pc.t === 'P' && fc !== tc) cap = at(fr, tc);      // braní mimochodem
+  if (cap) cap.alive = false;
+  if (pc.t === 'K' && Math.abs(tc - fc) === 2) {                // rošáda: věž jede taky
+    const rk = at(fr, tc > fc ? 7 : 0);
+    if (rk) rk.c = tc > fc ? 5 : 3;
+  }
+  pc.r = tr; pc.c = tc;
+  if (mv.promo) pc.t = mv.promo.toUpperCase();                  // id zůstává (§13.2)
+  return ps;
+}
+
+// pojistka: srovná seznam s FEN, kdyby data obsahovala něco, co applyMove nečeká
+let extraId = 0;
+function syncToFen(ps, fen) {
+  const want = piecesFromFEN(fen);                              // jen side, t, r, c
+  const live = ps.filter(p => p.alive);
+  const used = new Set();
+  const rest = [];
+  for (const w of want) {                                       // 1) sedí přesně → ponechat
+    const hit = live.find(p => !used.has(p) && p.side === w.side && p.t === w.t && p.r === w.r && p.c === w.c);
+    if (hit) used.add(hit); else rest.push(w);
+  }
+  for (const w of rest) {                                       // 2) nejbližší volná figura stejného druhu
+    const cand = live.filter(p => !used.has(p) && p.side === w.side && p.t === w.t)
+      .sort((a, b) => Math.max(Math.abs(a.r - w.r), Math.abs(a.c - w.c))
+                    - Math.max(Math.abs(b.r - w.r), Math.abs(b.c - w.c)))[0];
+    if (cand) { used.add(cand); cand.r = w.r; cand.c = w.c; }
+    else { const n = { id: `x${++extraId}`, side: w.side, t: w.t, r: w.r, c: w.c, alive: true };
+           ps.push(n); used.add(n); }                           // 3) nová figura se objeví prolnutím
+  }
+  live.forEach(p => { if (!used.has(p)) p.alive = false; });    // 4) co v FEN není, zhasne
+  return ps;
+}
+
+// celá partie: timeline[k] = figury po k půltazích
+function buildTimeline(startFen, moves) {                       // moves: [{ from, to, promo, after }]
+  const tl = [piecesFromFEN(startFen)];
+  moves.forEach(mv => tl.push(syncToFen(applyMove(tl[tl.length - 1], mv), mv.after)));
+  return tl;
+}
+```
+
+* `timeline` se počítá **jednou** po načtení partie (nebo po přidání tahu v analýze) — navigace pak jen vybírá `timeline[k]`
+* protože mrtvé figury v seznamu zůstávají, **krok zpět vrátí branou figuru prolnutím** a identity sedí v obou směrech
+* `syncToFen` je pojistka, ne hlavní mechanismus: při správných datech nic nemění. Když přesto zasáhne (neznámý formát, Chess960), deska zůstane **správná** a nanejvýš jedna figura se přesune „divně" — nikdy nevznikne špatná pozice
+* volná analýza (uživatel táhne sám): nový tah = `timeline.push(syncToFen(applyMove(last, mv), fenPo))`; „Vrátit tah" = `timeline.pop()` a deska se animovaně vrátí
+* hlavní variantu enginu (PV) lze přehrát stejně: `buildTimeline(fen, pvMoves)` — nová timeline = přepnutí **skokem**, pak animace po tazích
+
+### 12.6 Vanilla JS artefakty (HTML bez Reactu)
+
+Nástroje typu analyzátor jsou často čisté HTML + JS. Pravidla §12.1–12.5 platí beze změny, jen místo Reactu drží uzly figur **mapa podle `id`** a SVG se **nikdy nemaže celé**:
+
+```js
+// SVG se staví jednou, ve vrstvách (pořadí §4):
+// gBoard (rám, pole, souřadnice) → gUnder (lastFrom/lastTo, zone, keys) → gPieces → gOver (marks, šach, arrows)
+const nodes = new Map();                                        // id → <g>
+
+function renderPieces(list, { instant = false, speed = MOTION.move } = {}) {
+  const seen = new Set();
+  for (const p of list) {
+    seen.add(p.id);
+    let g = nodes.get(p.id);
+    if (!g) {                                                   // nová figura: postavit bez přechodu
+      g = el('g', { 'class': 'piece' });
+      g.appendChild(el('text', { 'text-anchor': 'middle', 'dominant-baseline': 'central', y: 1 }));
+      gPieces.appendChild(g); nodes.set(p.id, g);
+      g.style.transition = 'none';
+    } else {
+      g.style.transition = instant || REDUCE ? 'none' : speed;
+    }
+    const { x, y } = center(p.r, p.c);                          // střed pole, respektuje flipped
+    g.style.transform = `translate(${x}px, ${y}px)`;
+    g.style.opacity = p.alive ? 1 : 0;
+    const t = g.firstChild;
+    t.setAttribute('class', 'pc ' + (p.side === 'w' ? 'pw' : 'pb'));
+    t.textContent = GLYPH[p.t] + '\uFE0E';
+  }
+  for (const [id, g] of nodes) if (!seen.has(id)) { g.remove(); nodes.delete(id); }
+}
+
+function showStep(k, { reset = false } = {}) {                  // stejná logika jako go() v §12.4
+  cancelAnimationFrame(rafId);                                  // reset = nová partie / nová timeline
+  const from = S.boardStep;
+  if (k === 0 || reset) { draw(k, { instant: true }); return; }
+  if (Math.abs(k - from) <= 1) { draw(k); return; }
+  draw(k - 1, { instant: true });
+  gPieces.getBoundingClientRect();                              // vynutí vykreslení fáze 1
+  rafId = requestAnimationFrame(() => draw(k));
+}
+// draw(k, opt) = S.boardStep = k; překreslí gUnder + gOver pro krok k a zavolá renderPieces(timeline[k], opt)
+```
+
+* `gBoard` se překresluje jen při otočení desky; `gUnder` a `gOver` se smějí mazat a stavět znovu při každém kroku; **`gPieces` nikdy**
+* `getBoundingClientRect()` mezi fázemi je nutný — bez něj prohlížeč obě změny sloučí a fáze 1 se neprojeví
+* nový uzel se postaví s `transition: 'none'`, aby nepřiletěl z rohu desky (0,0)
+* CSS: `.piece { will-change: transform; }` — plynulejší na iPhonu
+
+### 12.7 Tahy klepnutím na desku
+
+U artefaktů, kde uživatel táhne sám (volná analýza, trenažér):
+
+* klepnutí na pole chytá vrstva polí (`gBoard`), figury mají `pointer-events: none`
+* po platném tahu se figura přesune s `MOTION.user` (0,22 s); odpověď enginu nebo soupeře, pokud přijde, s `MOTION.move` až **po doběhnutí** tahu uživatele (nejdřív za 250 ms), aby dva pohyby nesplynuly v jeden
+* nelegální klepnutí figurou nehýbe — jen zruší výběr
+
+### 12.8 Zvláštní případy
 
 |Situace|Chování|Řešení|
 |-|-|-|
-|**Rošáda**|král i věž se hýbou zároveň|`m2` v `positionAt`; obě dvojice polí zvýraznit (§4)|
-|**Proměna pěšce**|glyf se mění uprostřed pohybu|`promote` přepíše `p.t`, `id` zůstává → figura dojede a přebarví se (§13.2)|
-|**Skok přes více tahů**|figury letí přímo z výchozí na cílovou pozici|je to v pořádku a čitelné — nic neřešit|
-|**Přepnutí varianty**|figury by přelétaly mezi nesouvisejícími pozicemi|obalit skupinu ``<g key={`pieces-${vIdx}`}>`` → pozice se přepne skokem|
-|**Otevření vedlejší varianty**|totéž|`key` rozšířit o `sideIdx` (§14)|
+|**Rošáda**|král i věž se hýbou zároveň|`m2` v `positionAt` / detekce v `applyMove`; obě dvojice polí zvýraznit (§4)|
+|**Proměna pěšce**|glyf se mění uprostřed pohybu|`promote` / `promo` přepíše `p.t`, `id` zůstává → figura dojede a přebarví se (§13.2)|
+|**Braní mimochodem**|braný pěšec zhasne na jiném poli, než kam táhne útočník|`clear` v `positionAt`, detekce v `applyMove`|
+|**Skok přes více tahů**|nejdřív skokem na tah před cílem, pak animovaný poslední tah|§12.4|
+|**Přepnutí varianty / větve, nová partie**|pozice se přepne skokem|`key` skupiny `pieces-${vIdx}-${sideIdx}` (React), `instant` (vanilla)|
 |**Otočení desky (↕)**|všechny figury naráz přejedou na zrcadlené pozice|ponechat — je to čitelný „převrat" desky|
 |**Změna barevného režimu**|mění se jen barvy, ne pozice|žádná animace `fill`|
-|**Braní mimochodem**|model neumí|rozšířit `positionAt` o `clear: [r,c]` (§6)|
 
-### 12.4 Přístupnost
+### 12.9 Přístupnost
 
 ```js
-const reduce = typeof window !== 'undefined'
+const REDUCE = typeof window !== 'undefined'
   && window.matchMedia
   && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-// …
-transition: reduce ? 'none' : 'transform 0.45s cubic-bezier(0.25,0.8,0.35,1), opacity 0.35s ease',
+// React:   transition: instant || REDUCE ? 'none' : MOTION.move
+// vanilla: g.style.transition = instant || REDUCE ? 'none' : speed
 ```
 
-### 12.5 Co animaci rozbíjí (kontrolní seznam)
+Při `REDUCE` zůstává dvoufázový skok (§12.4) zachovaný — fáze 2 prostě proběhne bez přechodu. Zvýraznění `lastFrom` / `lastTo` je v tom případě jediné vodítko, proto nesmí chybět nikdy.
+
+### 12.10 Co animaci rozbíjí (kontrolní seznam)
 
 * ❌ `key` odvozený od pozice nebo indexu místo `p.id`
 * ❌ mazání brané figury ze seznamu místo `alive: false`
@@ -417,6 +607,10 @@ transition: reduce ? 'none' : 'transform 0.45s cubic-bezier(0.25,0.8,0.35,1), op
 * ❌ nové pole figur vytvořené při každém renderu bez `useMemo`
 * ❌ vykreslování figur uvnitř smyčky po polích desky (matice 8×8)
 * ❌ **nová identita figury při proměně** (nový `id` = teleport)
+* ❌ **stavění figur z FEN pro každý krok znovu** (`new Chess(fen).board()` → `<text>`) místo `buildTimeline` (§12.5)
+* ❌ **mazání celé SVG** (`while (svg.firstChild) svg.removeChild(…)`) při každém kroku (§12.6)
+* ❌ **skok na vzdálený tah jedním přechodem** bez fáze „tah před cílem" (§12.4)
+* ❌ zvýraznění posledního tahu počítané ze `step` místo z kroku desky (bliknutí o snímek dřív)
 
 ---
 
@@ -684,22 +878,22 @@ Abstraktní pojem se pochopí rychleji s obrázkem. Koncept proto může nést v
 
 Ne každý artefakt potřebuje všechno. Tabulka říká, co zapnout podle typu:
 
-|Funkce|Zahájení|Past / motiv|Koncovka|Rozbor partie|
-|-|-|-|-|-|
-|Čtyři barevné režimy (§2)|✅|✅|✅|✅|
-|Animace figur (§12)|✅|✅|✅|✅|
-|Přepínač variant (§10)|✅ typ A|✅ typ B|⚪ zřídka|❌|
-|Start z FEN (§13.1)|❌|⚪|✅|⚪|
-|Proměna pěšce (§13.2)|❌|⚪|✅|⚪|
-|Odznak hodnocení (§13.5)|❌|⚪|✅|⚪|
-|Otázka pro uživatele (§13.6)|⚪|✅|✅|❌|
-|Vedlejší varianty `side` (§14)|⚪|✅|✅|⚪|
-|`zone` / `keys` (§15)|❌|⚪|✅|❌|
-|`arrows` (§15)|⚪|✅|⚪|⚪|
-|Počítadlo závodu (§16)|❌|❌|✅ jen pěšcové|❌|
-|Režim úlohy (§17)|❌|✅|✅|❌|
-|Odznak série (§18)|⚪|⚪|✅|❌|
-|Mini-diagramy (§19)|⚪|⚪|✅|❌|
+|Funkce|Zahájení|Past / motiv|Koncovka|Rozbor partie|Nástroj (analyzátor)|
+|-|-|-|-|-|-|
+|Čtyři barevné režimy (§2)|✅|✅|✅|✅|✅|
+|Animace figur (§12) — včetně skoku §12.4|✅|✅|✅|✅|✅|
+|Přepínač variant (§10)|✅ typ A|✅ typ B|⚪ zřídka|❌|❌|
+|Start z FEN (§13.1)|❌|⚪|✅|⚪|✅|
+|Proměna pěšce (§13.2)|❌|⚪|✅|⚪|✅|
+|Odznak hodnocení (§13.5)|❌|⚪|✅|⚪|❌|
+|Otázka pro uživatele (§13.6)|⚪|✅|✅|❌|❌|
+|Vedlejší varianty `side` (§14)|⚪|✅|✅|⚪|❌|
+|`zone` / `keys` (§15)|❌|⚪|✅|❌|❌|
+|`arrows` (§15)|⚪|✅|⚪|⚪|✅ tah enginu|
+|Počítadlo závodu (§16)|❌|❌|✅ jen pěšcové|❌|❌|
+|Režim úlohy (§17)|❌|✅|✅|❌|❌|
+|Odznak série (§18)|⚪|⚪|✅|❌|❌|
+|Mini-diagramy (§19)|⚪|⚪|✅|❌|❌|
 
 ✅ zapnout · ⚪ podle obsahu · ❌ nezapínat
 
@@ -720,7 +914,7 @@ Každý artefakt musí být zvenčí poznat, podle které verze design systému 
 |Název souboru|❌ **nepoužívat**|při upgradu na novou verzi by bylo nutné soubor přejmenovat → rozbité odkazy, dvě kopie vedle sebe, nejasno, která je živá|
 |Komentář v kódu|⚪ volitelné|neuškodí, ale sám nestačí — uživatel ho neuvidí|
 
-**Výjimka:** dokument samotné specifikace verzi v názvu nese (`design-system-sachovych-artefaktu_v5.md`), protože jednotlivé verze mají existovat vedle sebe jako samostatné dokumenty.
+**Totéž platí pro samotnou specifikaci:** je to jediný soubor `design-system-sachovych-artefaktu.md` v git repozitáři. Číslo verze nese jen nadpis dokumentu, changelog a **git tag** (`v5`, `v6`, …); starší verze se nečtou z kopií vedle sebe, ale z historie — na GitHubu přes záložku *Tags*, lokálně `git show v5:design-system-sachovych-artefaktu.md`, rozdíl verzí `git diff v5 v6`. (Do v5 se verze psala do názvu souboru; od v6 už ne.)
 
 ### 21.2 Konstanta
 
@@ -729,7 +923,7 @@ Hned pod importy, nad `THEMES`:
 ```js
 const ARTEFAKT = {
   nazev: 'italska-partie-kompletni',   // shodné s názvem souboru, bez přípony
-  ds: 'v5',                            // verze design systému, podle které byl POSTAVEN
+  ds: 'v6',                            // verze design systému, podle které byl POSTAVEN
   vznik: '2026-08',                    // rok a měsíc vzniku
   revize: null,                        // '2026-11' při větší úpravě, jinak null
 };
@@ -755,7 +949,7 @@ const ARTEFAKT = {
 Vykreslí se například:
 
 ```
-design systém v5 · italska-partie-kompletni · 2026-08
+design systém v6 · italska-partie-kompletni · 2026-08
 ```
 
 **Pravidla:**
@@ -790,5 +984,20 @@ Existující artefakty se **nemusí** přepisovat. Pokud se ale artefakt otevír
 
 ---
 
-*Konec specifikace v5.*
+## 23. Migrace v5 → v6
 
+Změna ve v6 se týká jen pohybu figur, obsah artefaktů zůstává. Artefakty postavené podle v5 (React s `positionAt`) už plynule animují krok po kroku — chybí jim jen dvoufázový skok. Při nejbližší opravě:
+
+1. Rozdělit stav na `step` (logický) a `board = { step, instant }` (deska) a přepsat `go()` podle §12.4
+2. Zvýraznění posledního tahu, `marks`, vrstvy §15 a počítadlo závodu přepojit ze `step` na `board.step`
+3. Časy přechodů nahradit konstantou `MOTION` (§12.3)
+4. Pokud linie obsahuje braní mimochodem, doplnit `clear` (§6)
+5. Kontrolní seznam §9 (body animace a–j) projít celý, pak `ds: 'v6'` a `revize` (§21.4)
+
+**Nástroje ve vanilla JS** (Stockfish analyzátor) se přestavují celé podle §12.5–12.6: `drawBoard()` rozdělit na čtyři trvalé vrstvy, figury kreslit přes `renderPieces(timeline[k])`, `timeline` stavět jednou po načtení partie a ve volné analýze prodlužovat o každý tah.
+
+**Zpětná kompatibilita:** v6 nemění datový model tahů (`m`, `m2`, `promote`, `side`, …) — přibyl jen volitelný klíč `clear`. Artefakt podle v5 je proto dál platný; v patičce nechat poctivě `ds: 'v5'`, dokud neprojde přestavbou.
+
+---
+
+*Konec specifikace v6.*
